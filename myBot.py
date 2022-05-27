@@ -105,7 +105,11 @@ async def flip(ctx):
     else:
         await ctx.send(answers[1])
 
-
+@bot.command()
+async def play(ctx, url: str, channel):
+    voice_channel = discord.utils.get(ctx.guild.voice_channels, name =channel)
+    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    await voice_channel.connect()
 
 
 bot.run(os.getenv('TOKEN'))

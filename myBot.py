@@ -11,7 +11,7 @@ import requests
 intents = discord.Intents.default()
 intents.members = True
 load_dotenv()
-bot = commands.Bot(command_prefix='.', intents=intents)
+bot = commands.Bot(command_prefix='+', intents=intents)
 
 
 @bot.event
@@ -91,7 +91,7 @@ async def magicball(ctx, *question):
              'Im to lazy to predict.',
              'I am tired. *proceeds with sleeping*']
     response = random.choice(responses)
-    embed=discord.Embed(title="The Magic 8 Ball has Spoken!")
+    embed=discord.Embed(title="The Magic Being, BotBot, has spoken!")
     embed.add_field(name='Question: ', value=f'{question_full}', inline=True)
     embed.add_field(name='Answer: ', value=f'{response}', inline=False)
     await ctx.send(embed=embed)
@@ -99,11 +99,12 @@ async def magicball(ctx, *question):
 @bot.command()
 async def flip(ctx):
     answers = ['heads', 'tails']
-    num = random.randint(0, 1)
+    num = random.randint(0, 1) 
     if(num == 0):
         await ctx.send(answers[0])
     else:
         await ctx.send(answers[1])
+
 
 
 

@@ -111,7 +111,7 @@ async def join(ctx):
         channel = ctx.author.voice.channel
         await channel.connect()
         await ctx.send('Bot joined')
-    else: #But is (s)he isn't in a voice channel
+    else: 
         await ctx.send("You must be in a voice channel first so I can join it.")
 
 @bot.command()
@@ -119,7 +119,7 @@ async def leave(ctx):
     if (ctx.voice_client): 
         await ctx.guild.voice_client.disconnect() 
         await ctx.send('Bot left')
-    else: # But if it isn't
+    else: 
         await ctx.send("I'm not in a voice channel, use the join command to make me join")
 
 

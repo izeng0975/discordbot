@@ -107,7 +107,7 @@ async def flip(ctx):
 
 @bot.command()
 async def join(ctx):
-    if (ctx.author.voice): # If the person is in a channel
+    if (ctx.author.voice): 
         channel = ctx.author.voice.channel
         await channel.connect()
         await ctx.send('Bot joined')
@@ -115,9 +115,9 @@ async def join(ctx):
         await ctx.send("You must be in a voice channel first so I can join it.")
 
 @bot.command()
-async def leave(ctx): # Note: ?leave won't work, only ?~ will work unless you change  `name = ["~"]` to `aliases = ["~"]` so both can work.
-    if (ctx.voice_client): # If the bot is in a voice channel 
-        await ctx.guild.voice_client.disconnect() # Leave the channel
+async def leave(ctx): 
+    if (ctx.voice_client): 
+        await ctx.guild.voice_client.disconnect() 
         await ctx.send('Bot left')
     else: # But if it isn't
         await ctx.send("I'm not in a voice channel, use the join command to make me join")

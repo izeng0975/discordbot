@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import requests
 import random
 from jikanpy import Jikan
-
+import numpy as np
 
 intents = discord.Intents.default()
 intents.members = True
@@ -143,23 +143,36 @@ async def anime(ctx,*anime):
         response = jikan.search('anime', anime_name)
         print(response)
         x = 0
-        while response['results'][x]['title'].replace(" ", '').lower() != anime_name:
+        try:
+            while response['results'][x]['title'].replace(" ", '').lower() != anime_name:
+                print(response['results'][x]['title'])
+                x += 1
             print(response['results'][x]['title'])
-            x += 1
-        print(response['results'][x]['title'])
-        anime_name = response['results'][x]['mal_id']
-        response = jikan.anime(anime_name)
-        print(response)
-        title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
-        embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'],
+            anime_name = response['results'][x]['mal_id']
+            response = jikan.anime(anime_name)
+            print(response)
+            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
+            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'],
                               color=discord.Color.blue())
-        embed.set_thumbnail(url=response['image_url'])
-        embed.add_field(name='Episodes: ', value=str(response['episodes']), inline=True)
-        embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
-        embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
-        await ctx.send(embed=embed)
+            embed.set_thumbnail(url=response['image_url'])
+            embed.add_field(name='Episodes: ', value=str(response['episodes']), inline=True)
+            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
+            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
+            await ctx.send(embed=embed)
+        except:
+            n=0
+            suggested = []
+            for i in response['results']:
+                suggested.append((response['results'][n]['title']))
+                n += 1
+
+            embedSuggest = discord.Embed(title="Did you mean: ", description=listToString(suggested), color=discord.Color.blue())
+            await ctx.send(embed=embedSuggest)
 
 
+def listToString(s):
+    str1 = " \n"
+    return str1.join(s)
 
 
 bot.run(os.getenv('TOKEN'))

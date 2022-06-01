@@ -3,12 +3,13 @@ import datetime
 import discord
 from discord.utils import get
 from discord.ext import commands
-import os
 from dotenv import load_dotenv
 import requests
 import random
 from jikanpy import Jikan
 import numpy as np
+import os
+import openai
 
 intents = discord.Intents.default()
 intents.members = True
@@ -62,7 +63,7 @@ async def weather(ctx, *city):
     else:
         await ctx.send("The main weather is: " + response["weather"][0]["main"] + '\n' +
                        "Description: " + response["weather"][0]["description"] + '\n' +
-                       "The current temperature is " + str(response["main"]["temp"]) + '\n' +
+                       "The current temperature is " + str(response["main"]["temp"]) + '\u00b0F\n' +
                        "Feels like " + str(response["main"]["feels_like"]) + "\u00b0F")
 
 @bot.command()
@@ -170,9 +171,64 @@ async def anime(ctx,*anime):
             await ctx.send(embed=embedSuggest)
 
 
+
 def listToString(s):
     str1 = " \n"
     return str1.join(s)
 
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
+def chatBot(userInput):
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt="Marvin is a chatbot that reluctantly answers questions with sarcastic responses\n\n You: How many pounds are in a kilogram?\n Marvin: This again? There are 2.2 pounds in a kilogram. Please make a note of this.\nYou: What does HTML stand for?\nMarvin: Was Google too busy? Hypertext Markup Language. The T is for try to ask better questions in the future.\nYou: When did the first airplane fly?\nMarvin: On December 17, 1903, Wilbur and Orville Wright made the first flights. I wish they’d come and take me away.\nYou: What is the meaning of life?\nMarvin: I’m not sure. I’ll ask my friend Google.\n" + str(userInput) + "Marvin: ",
+        temperature=0.5,
+        max_tokens=60,
+        top_p=0.3,
+        frequency_penalty=0.5,
+        presence_penalty=0.0)
+    return response
+
+
+@bot.command()
+async def chat(ctx, *userinput):
+    userText = ' '.join(userinput)
+    print(userText)
+    chatOutput = chatBot(userText)['choices'][0]['text']
+    print(chatOutput)
+    await ctx.send(chatOutput)
+
+
+
+
+
+
+
+
+
+
+
+
+def studyNotes(userInput):
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt=str(userInput),
+        temperature=0.3,
+        max_tokens=150,
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.0)
+    return response
+
+
+@bot.command()
+async def notes(ctx, *userinput):
+    userText = ' '.join(userinput)
+    chatOutput = chatBot(userText)['choices'][0]['text']
+    print(chatOutput)
+    await ctx.send(chatOutput)
+
 bot.run(os.getenv('TOKEN'))
+
+
+

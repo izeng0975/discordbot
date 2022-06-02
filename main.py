@@ -3,12 +3,13 @@ import datetime
 import discord
 from discord.utils import get
 from discord.ext import commands
-import os
 from dotenv import load_dotenv
 import requests
 import random
 from jikanpy import Jikan
 import numpy as np
+import os
+import openai
 
 intents = discord.Intents.default()
 intents.members = True
@@ -22,18 +23,19 @@ async def on_ready():
 
 
 @bot.event
-async def on_member_remove(member):
+async def on_member_leave(member):
     guild = member.guild
+    channel = guild.get_channel(member.guild.channels)
+    await channel.send(f'Everyone, {member.name} has left the server. :sad:')
     await member.send('Sorry to see you leave so soon :(')
 
 
 @bot.event
 async def on_member_join(member):
     guild = member.guild
-    ##channel = discord.utils.get(member.guild.channels)
-    ##await channel.send(f'Everyone, welcome {member.name} to the server! :confetti:')
-    embed = discord.Embed(title='Welcome!', description=f'Welcome to the {guild.name} server! :partying_face:', color=discord.Color.blue())
-    await member.send(embed=embed)
+    channel = discord.utils.get(member.guild.channels)
+    await channel.send(f'Everyone, welcome {member.name} to the server! :confetti:')
+    await member.send(f'Welcome to the {guild.name} server, {member.name}! :sunglasses: ')
 
 
 
@@ -61,7 +63,7 @@ async def weather(ctx, *city):
     else:
         await ctx.send("The main weather is: " + response["weather"][0]["main"] + '\n' +
                        "Description: " + response["weather"][0]["description"] + '\n' +
-                       "The current temperature is " + str(response["main"]["temp"]) + '\n' +
+                       "The current temperature is " + str(response["main"]["temp"]) + '\u00b0F\n' +
                        "Feels like " + str(response["main"]["feels_like"]) + "\u00b0F")
 
 @bot.command()
@@ -125,16 +127,7 @@ async def anime(ctx,*anime):
     anime_name = ''.join(anime)
     print(anime_name)
     try:
-        if anime_name == '86':
-            response = jikan.anime(41457)
-            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
-            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'], color=discord.Color.blue())
-            embed.set_thumbnail(url=response['image_url'])
-            embed.add_field(name='Episodes: ', value=str(response['episodes']), inline=True)
-            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
-            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
-            await ctx.send(embed=embed)
-        elif isinstance(int(anime_name), int) == True:
+        if isinstance(int(anime_name), int) == True:
             response = jikan.anime(anime_name)
             print(response)
             title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
@@ -176,78 +169,65 @@ async def anime(ctx,*anime):
 
             embedSuggest = discord.Embed(title="Did you mean: ", description=listToString(suggested), color=discord.Color.blue())
             await ctx.send(embed=embedSuggest)
-@bot.command()
-async def manga(ctx, *manga):
-    manga_name = ''.join(manga)
-    print(manga_name)
-    # title, title_english, status, image_url, chapters, volumes, score, synopsis,url,
-    try:
-        if manga_name == '86':
-            response = jikan.manga(112236)
-            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
-            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'], color=discord.Color.blue())
-            embed.set_thumbnail(url=response['image_url'])
-            embed.add_field(name='Volumes: ', value=str(response['volumes']), inline=True)
-            embed.add_field(name='Chapters: ', value=str(response['chapters']), inline = True)
-            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
-            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
-            await ctx.send(embed=embed)
-        elif isinstance(int(manga_name), int) == True:
-            response = jikan.anime(manga_name)
-            print(response)
-            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
-            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'], color=discord.Color.blue())
-            embed.set_thumbnail(url=response['image_url'])
-            embed.add_field(name='Volumes: ', value=str(response['volumes']), inline=True)
-            embed.add_field(name='Chapters: ', value=str(response['chapters']), inline = True)
-            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
-            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
-            await ctx.send(embed=embed)
-    except:
-        manga_name = ''.join(manga)
-        manga_name = manga_name.lower()
-        response = jikan.search('manga', manga_name)
-        print(response)
-        x = 0
-        try:
-            while response['results'][x]['title'].replace(" ", '').lower() != manga_name:
-                print(response['results'][x]['title'])
-                x += 1
-            print(response['results'][x]['title'])
-            manga_name = response['results'][x]['mal_id']
-            response = jikan.manga(manga_name)
-            print(response)
-            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
-            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'],
-                              color=discord.Color.blue())
-            embed.set_thumbnail(url=response['image_url'])
-            embed.add_field(name='Volumes: ', value=str(response['volumes']), inline=True)
-            embed.add_field(name='Chapters: ', value=str(response['chapters']), inline = True)
-            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
-            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
-            await ctx.send(embed=embed)
-        except:
-            n=0
-            suggested = []
-            for i in response['results']:
-                suggested.append((response['results'][n]['title']))
-                n += 1
 
-            embedSuggest = discord.Embed(title="Did you mean: ", description=listToString(suggested), color=discord.Color.blue())
-            await ctx.send(embed=embedSuggest)
-@bot.command()
-async def pfp(ctx, member: discord.Member = None):
-    if member == None:
-        user = ctx.message.author
-        pfp = user.avatar_url
-        await ctx.send(pfp)
-    else:
-        pfp = member.avatar_url
-        await ctx.send(pfp)
+
 
 def listToString(s):
     str1 = " \n"
     return str1.join(s)
 
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
+def chatBot(userInput):
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt="Marvin is a chatbot that reluctantly answers questions with sarcastic responses\n\n You: How many pounds are in a kilogram?\n Marvin: This again? There are 2.2 pounds in a kilogram. Please make a note of this.\nYou: What does HTML stand for?\nMarvin: Was Google too busy? Hypertext Markup Language. The T is for try to ask better questions in the future.\nYou: When did the first airplane fly?\nMarvin: On December 17, 1903, Wilbur and Orville Wright made the first flights. I wish they’d come and take me away.\nYou: What is the meaning of life?\nMarvin: I’m not sure. I’ll ask my friend Google.\n" + str(userInput) + "Marvin: ",
+        temperature=0.5,
+        max_tokens=60,
+        top_p=0.3,
+        frequency_penalty=0.5,
+        presence_penalty=0.0)
+    return response
+
+
+@bot.command()
+async def chat(ctx, *userinput):
+    userText = ' '.join(userinput)
+    print(userText)
+    chatOutput = chatBot(userText)['choices'][0]['text']
+    print(chatOutput)
+    await ctx.send(chatOutput)
+
+
+
+
+
+
+
+
+
+
+
+
+def studyNotes(userInput):
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt=str(userInput),
+        temperature=0.3,
+        max_tokens=150,
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.0)
+    return response
+
+
+@bot.command()
+async def notes(ctx, *userinput):
+    userText = ' '.join(userinput)
+    chatOutput = chatBot(userText)['choices'][0]['text']
+    print(chatOutput)
+    await ctx.send(chatOutput)
+
 bot.run(os.getenv('TOKEN'))
+
+

@@ -1,5 +1,5 @@
 import time
-import datetime
+from datetime import date
 import discord
 from discord.utils import get
 from discord.ext import commands
@@ -10,6 +10,10 @@ from jikanpy import Jikan
 import numpy as np
 import os
 import openai
+from PIL import Image, ImageFont, ImageDraw
+
+
+
 
 intents = discord.Intents.default()
 intents.members = True
@@ -38,8 +42,6 @@ async def on_member_join(member):
     await member.send(f'Welcome to the {guild.name} server, {member.name}! :sunglasses: ')
 
 
-
-
 @bot.command()
 async def spam(ctx, num: int, *message):
     for i in range(num):
@@ -65,6 +67,87 @@ async def weather(ctx, *city):
                        "Description: " + response["weather"][0]["description"] + '\n' +
                        "The current temperature is " + str(response["main"]["temp"]) + '\u00b0F\n' +
                        "Feels like " + str(response["main"]["feels_like"]) + "\u00b0F")
+
+        image = Image.open("post.png")
+        draw = ImageDraw.Draw(image)
+        #title and subheading
+        font = ImageFont.truetype("Inter.ttf", size=50)
+        content = "Latest Weather Forecast for " + city_full
+        color = "rgb(255, 255, 255)"
+        (x, y) = (46, 74)
+        draw.text((x, y), content, color, font=font)
+
+        font = ImageFont.truetype("Inter.ttf", size=35)
+        today = date.today()
+        content = today.strftime("%A - %B %d, %Y")
+        color = "rgb(255, 255, 255)"
+        (x, y) = (46, 145)
+        draw.text((x, y), content, color, font=font)
+
+        #temperature
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        color = "rgb(0, 0, 0)"
+        (x, y) = (135, 300)
+        draw.text((x, y), "The main weather is:", color, font=font)
+
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        content = str(response["weather"][0]["main"])
+        color = "rgb(255, 255, 255)"
+        (x, y) = (650, 300)
+        draw.text((x, y), content, color, font=font)
+
+        #weather description
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        color = "rgb(0, 0, 0)"
+        (x, y) = (135, 430)
+        draw.text((x, y), "Description:", color, font=font)
+
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        content = str(response["weather"][0]["description"])
+        color = "rgb(255, 255, 255)"
+        (x, y) = (620, 430)
+        draw.text((x, y), content, color, font=font)
+
+        #temperature
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        color = "rgb(0, 0, 0)"
+        (x, y) = (135, 555)
+        draw.text((x, y), "Current temperature: ", color, font=font)
+
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        content = str(response["main"]["temp"]) + '\u00b0F'
+        color = 'rgb(255, 255, 255)'
+        (x, y) = (650, 555)
+        draw.text((x, y), content, color, font=font)
+
+        #feels like
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        color = "rgb(0, 0, 0)"
+        (x, y) = (135, 690)
+        draw.text((x, y), "Feels like:", color, font=font)
+
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        content = str(response["main"]["feels_like"]) + '\u00b0F'
+        color = 'rgb(255, 255, 255)'
+        (x, y) = (650, 690)
+        draw.text((x, y), content, color, font=font)
+
+        image.show()
+        image.save("weather.png")
+        await ctx.send(file=discord.File('weather.png'))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @bot.command()
 async def magicball(ctx, *question):
@@ -94,6 +177,7 @@ async def magicball(ctx, *question):
     embed.add_field(name='Answer: ', value=f'{response}', inline=False)
     await ctx.send(embed=embed)
 
+
 @bot.command()
 async def flip(ctx):
     answers = ['heads', 'tails']
@@ -103,6 +187,7 @@ async def flip(ctx):
     else:
         await ctx.send(answers[1])
 
+
 @bot.command()
 async def join(ctx):
     if (ctx.author.voice):
@@ -111,6 +196,7 @@ async def join(ctx):
         await ctx.send('Bot joined')
     else:
         await ctx.send("You must be in a voice channel first so I can join it.")
+
 
 @bot.command()
 async def leave(ctx):
@@ -171,19 +257,92 @@ async def anime(ctx,*anime):
             await ctx.send(embed=embedSuggest)
 
 
+@bot.command()
+async def userinfo(ctx, *, user: discord.Member=None):
+    date_format = "%a, %d %b %Y %I:%M %p"
+    embed = discord.Embed(color=user.colour, description=user.mention, timestamp=ctx.message.created_at)
+    embed.set_author(name=f"User Info - {user}")
+    embed.set_author(name=str(user), icon_url=user.avatar_url)
+    embed.set_thumbnail(url=user.avatar_url)
+    embed.add_field(name="Joined", value=user.joined_at.strftime(date_format))
+    members = sorted(ctx.guild.members, key=lambda m: m.joined_at)
+    embed.add_field(name="Join position", value=str(members.index(user)+1))
+    embed.add_field(name="Registered", value=user.created_at.strftime(date_format))
+    if len(user.roles) > 1:
+        role_string = ' '.join([r.mention for r in user.roles][1:])
+        embed.add_field(name="Roles [{}]".format(len(user.roles)-1), value=role_string, inline=True)
+    perm_string = ', '.join([str(p[0]).replace("_", " ").title() for p in user.guild_permissions if p[1]])
+    embed.add_field(name="Guild permissions", value=perm_string, inline=False)
+    embed.set_footer(text='USER ID: ' + str(user.id))
+    await ctx.send(embed=embed)
 
-def listToString(s):
-    str1 = " \n"
-    return str1.join(s)
+
+@bot.command()
+async def serverinfo(ctx):
+    name = str(ctx.guild.name)
+    description = str(ctx.guild.description)
+
+    owner = str(ctx.guild.owner)
+    id = str(ctx.guild.id)
+    region = str(ctx.guild.region)
+    memberCount = str(ctx.guild.member_count)
+
+    icon = str(ctx.guild.icon_url)
+
+    embed = discord.Embed(
+        title=name + " Server Information",
+        description=description,
+        color=discord.Color.blue()
+    )
+    embed.set_thumbnail(url=icon)
+    embed.add_field(name="Owner", value=owner, inline=True)
+    embed.add_field(name="Server ID", value=id, inline=True)
+    embed.add_field(name="Region", value=region, inline=True)
+    embed.add_field(name="Member Count", value=memberCount, inline=True)
+
+    await ctx.send(embed=embed)
 
 
+@bot.command()
+async def rps(ctx, message):
+    answer = message.lower()
+    choices =['rock', 'paper', 'scissors']
+    bot_answer = random.choice(choices)
+    print(bot_answer)
+    if answer not in choices:
+        await ctx.send('Please answer using rock, paper, scissors as input')
+    else:
+        if bot_answer == answer:
+            await ctx.send(f'We got a tie. I also chose {answer}')
+            await ctx.send('https://tenor.com/view/tom-and-jerry-jerry-the-mouse-jerry-shake-hands-handshake-gif-17827738')
+        elif answer == 'rock':
+            if bot_answer == 'paper':
+                await ctx.send('I won. I chose paper to your rock.')
+                await ctx.send('https://tenor.com/view/naruto-naruto-fortnite-naruto-l-fortnite-naruto-fortnite-dance-fortnite-dance-gif-23955255')
+            else:
+                await ctx.send('I lost. I chose scissors to your rock')
+                await ctx.send('https://tenor.com/view/sad-cry-crying-tears-broken-gif-15062040')
+        elif answer == 'scissors' or answer == 'scissor':
+            if bot_answer == 'rock':
+                await ctx.send('I won. I chose rock to your scissors.')
+                await ctx.send('https://tenor.com/view/naruto-naruto-fortnite-naruto-l-fortnite-naruto-fortnite-dance-fortnite-dance-gif-23955255')
+            else:
+                await ctx.send('I lost. I chose paper to your scissors')
+                await ctx.send('https://tenor.com/view/sad-cry-crying-tears-broken-gif-15062040')
+        elif answer == 'paper':
+            if bot_answer == 'rock':
+                await ctx.send('I lost. I chose rock to your paper')
+                await ctx.send('https://tenor.com/view/sad-cry-crying-tears-broken-gif-15062040')
+            else:
+                await ctx.send('I won. I chose scissor to your paper')
+                await ctx.send('https://tenor.com/view/naruto-naruto-fortnite-naruto-l-fortnite-naruto-fortnite-dance-fortnite-dance-gif-23955255')
 openai.api_key = os.getenv("OPENAI_API_KEY")
 def chatBot(userInput):
     response = openai.Completion.create(
         engine="text-davinci-002",
         prompt="Marvin is a chatbot that reluctantly answers questions with sarcastic responses\n\n You: How many pounds are in a kilogram?\n Marvin: This again? There are 2.2 pounds in a kilogram. Please make a note of this.\nYou: What does HTML stand for?\nMarvin: Was Google too busy? Hypertext Markup Language. The T is for try to ask better questions in the future.\nYou: When did the first airplane fly?\nMarvin: On December 17, 1903, Wilbur and Orville Wright made the first flights. I wish they’d come and take me away.\nYou: What is the meaning of life?\nMarvin: I’m not sure. I’ll ask my friend Google.\n" + str(userInput) + "Marvin: ",
         temperature=0.5,
-        max_tokens=60,
+        max_tokens=500,
         top_p=0.3,
         frequency_penalty=0.5,
         presence_penalty=0.0)
@@ -200,21 +359,12 @@ async def chat(ctx, *userinput):
 
 
 
-
-
-
-
-
-
-
-
-
 def studyNotes(userInput):
     response = openai.Completion.create(
         engine="text-davinci-002",
         prompt=str(userInput),
         temperature=0.3,
-        max_tokens=150,
+        max_tokens=500,
         top_p=1.0,
         frequency_penalty=0.0,
         presence_penalty=0.0)
@@ -228,6 +378,18 @@ async def notes(ctx, *userinput):
     print(chatOutput)
     await ctx.send(chatOutput)
 
-bot.run(os.getenv('TOKEN'))
 
+
+
+
+
+
+
+
+
+def listToString(s):
+    str1 = " \n"
+    return str1.join(s)
+
+bot.run(os.getenv('TOKEN'))
 

@@ -18,7 +18,7 @@ from PIL import Image, ImageFont, ImageDraw
 intents = discord.Intents.default()
 intents.members = True
 load_dotenv()
-bot = commands.Bot(command_prefix='+', intents=intents)
+bot = commands.Bot(command_prefix='+', intents=intents, activity=discord.Activity(type=discord.ActivityType.listening, name="+help"))
 
 
 @bot.event
@@ -260,6 +260,8 @@ async def anime(ctx,*anime):
 @bot.command()
 async def userinfo(ctx, *, user: discord.Member=None):
     date_format = "%a, %d %b %Y %I:%M %p"
+    if user==None:
+        user=ctx.author
     embed = discord.Embed(color=user.colour, description=user.mention, timestamp=ctx.message.created_at)
     embed.set_author(name=f"User Info - {user}")
     embed.set_author(name=str(user), icon_url=user.avatar_url)
@@ -279,29 +281,26 @@ async def userinfo(ctx, *, user: discord.Member=None):
 
 @bot.command()
 async def serverinfo(ctx):
-    name = str(ctx.guild.name)
+    date_format = "%a, %d %b %Y %I:%M %p"
     description = str(ctx.guild.description)
-
-    owner = str(ctx.guild.owner)
-    id = str(ctx.guild.id)
-    region = str(ctx.guild.region)
-    memberCount = str(ctx.guild.member_count)
-
-    icon = str(ctx.guild.icon_url)
-
-    embed = discord.Embed(
-        title=name + " Server Information",
-        description=description,
-        color=discord.Color.blue()
-    )
-    embed.set_thumbnail(url=icon)
-    embed.add_field(name="Owner", value=owner, inline=True)
-    embed.add_field(name="Server ID", value=id, inline=True)
-    embed.add_field(name="Region", value=region, inline=True)
-    embed.add_field(name="Member Count", value=memberCount, inline=True)
-
+    embed = discord.Embed(title=f'{ctx.guild.name} Server Information',description=description,color=ctx.guild.owner.color)
+    embed.set_thumbnail(url=f'{ctx.guild.icon_url}')
+    embed.add_field(name="Owner", value=f'{ctx.guild.owner}', inline=True)
+    embed.add_field(name="Channels", value=f'Text Channels: {len(ctx.guild.text_channels)}\n' f'Voice Channels: {len(ctx.guild.voice_channels)}', inline=True)
+    print(ctx.guild.roles)
+    embed.add_field(name="Roles", value=f'{len(ctx.guild.roles)}', inline=True)
+    embed.add_field(name="Member Count", value=ctx.guild.member_count, inline=False)
+    embed.set_footer(text=f'Server ID: {ctx.guild.id}  Created: {ctx.guild.created_at.strftime(date_format)}')
     await ctx.send(embed=embed)
 
+
+@bot.command()
+async def pfp(ctx, member: discord.Member=None):
+    if member==None:
+        member = ctx.author
+    embed = discord.Embed(color=member.colour, description=f'Profile picture of {member.mention}')
+    embed.set_image(url=f'{member.avatar_url}')
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def rps(ctx, message):
@@ -336,6 +335,8 @@ async def rps(ctx, message):
             else:
                 await ctx.send('I won. I chose scissor to your paper')
                 await ctx.send('https://tenor.com/view/naruto-naruto-fortnite-naruto-l-fortnite-naruto-fortnite-dance-fortnite-dance-gif-23955255')
+
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 def chatBot(userInput):
     response = openai.Completion.create(

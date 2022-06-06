@@ -1,8 +1,10 @@
+import datetime
 import time
 from datetime import date
 import discord
 from discord.utils import get
 from discord.ext import commands
+from discord.ext.commands import MissingPermissions
 from dotenv import load_dotenv
 import requests
 import random
@@ -11,14 +13,17 @@ import numpy as np
 import os
 import openai
 from PIL import Image, ImageFont, ImageDraw
+import youtube_dl
+import asyncio
 
 
 
 
-intents = discord.Intents.default()
+
+intents = discord.Intents.all()
 intents.members = True
 load_dotenv()
-bot = commands.Bot(command_prefix='+', intents=intents)
+bot = commands.Bot(command_prefix='+', intents=intents, activity=discord.Activity(type=discord.ActivityType.listening, name="+help"))
 
 
 @bot.event
@@ -26,20 +31,21 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
 
 
-@bot.event
-async def on_member_leave(member):
-    guild = member.guild
-    channel = guild.get_channel(member.guild.channels)
-    await channel.send(f'Everyone, {member.name} has left the server. :sad:')
-    await member.send('Sorry to see you leave so soon :(')
+##@bot.event
+#async def on_member_leave(member):
+    #guild = member.guild
+    #channel = guild.get_channel(member.guild.channels)
+    #await channel.send(f'Everyone, {member.name} has left the server. :sad:')
+    #await member.send('Sorry to see you leave so soon :(')
 
 
-@bot.event
-async def on_member_join(member):
-    guild = member.guild
-    channel = discord.utils.get(member.guild.channels)
-    await channel.send(f'Everyone, welcome {member.name} to the server! :confetti:')
-    await member.send(f'Welcome to the {guild.name} server, {member.name}! :sunglasses: ')
+#@bot.event
+#async def on_member_join(member):
+    #try:
+        #embed=discord.Embed(f'Welcome {member.name} to the server!', description='I hope you have a fun time here!', color=discord.Color.green())
+        #await bot.send_message(member, embed=embed)
+    #except:
+        #pass
 
 
 @bot.command()
@@ -52,7 +58,6 @@ async def spam(ctx, num: int, *message):
 @bot.command()
 async def weather(ctx, *city):
     city_full = ' '.join(city)
-    global response
     url = os.getenv('weather_url')
     api_key = os.getenv('weather_api_key')
     querystring = {"q": city_full, "appid": api_key, "units": "imperial"}
@@ -63,16 +68,11 @@ async def weather(ctx, *city):
         if response['message'] == 'city not found':
             await ctx.send("That's not a real place!")
     else:
-        await ctx.send("The main weather is: " + response["weather"][0]["main"] + '\n' +
-                       "Description: " + response["weather"][0]["description"] + '\n' +
-                       "The current temperature is " + str(response["main"]["temp"]) + '\u00b0F\n' +
-                       "Feels like " + str(response["main"]["feels_like"]) + "\u00b0F")
-
         image = Image.open("post.png")
         draw = ImageDraw.Draw(image)
         #title and subheading
-        font = ImageFont.truetype("Inter.ttf", size=50)
-        content = "Latest Weather Forecast for " + city_full
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        content = "Latest Weather Forecast for " + response['name']
         color = "rgb(255, 255, 255)"
         (x, y) = (46, 74)
         draw.text((x, y), content, color, font=font)
@@ -132,20 +132,24 @@ async def weather(ctx, *city):
         (x, y) = (650, 690)
         draw.text((x, y), content, color, font=font)
 
+        #humidity
+        font = ImageFont.truetype("Inter.ttf", size=40)
+        color = "rgb(0, 0, 0)"
+        (x, y) = (135, 830)
+        draw.text((x,y), "Humidity", color, font=font)
+
+        font = ImageFont.truetype("Inter.ttf", size =40)
+        content = str(response['main']['humidity']) + '%'
+        color = 'rgb(255,255,255)'
+        (x,y) = (650, 830)
+        draw.text((x,y), content, color, font=font)
+
         image.show()
         image.save("weather.png")
-        await ctx.send(file=discord.File('weather.png'))
-
-
-
-
-
-
-
-
-
-
-
+        embed=discord.Embed(title=f'Showing weather for {response["name"]}', color=discord.Color.blue())
+        file = discord.File('weather.png')
+        embed.set_image(url="attachment://weather.png")
+        await ctx.send(embed=embed, file=file)
 
 
 
@@ -260,76 +264,84 @@ async def anime(ctx,*anime):
 @bot.command()
 async def userinfo(ctx, *, user: discord.Member=None):
     date_format = "%a, %d %b %Y %I:%M %p"
+    if user==None:
+        user=ctx.author
     embed = discord.Embed(color=user.colour, description=user.mention, timestamp=ctx.message.created_at)
     embed.set_author(name=f"User Info - {user}")
     embed.set_author(name=str(user), icon_url=user.avatar_url)
     embed.set_thumbnail(url=user.avatar_url)
     embed.add_field(name="Joined", value=user.joined_at.strftime(date_format))
     members = sorted(ctx.guild.members, key=lambda m: m.joined_at)
-    embed.add_field(name="Join position", value=str(members.index(user)+1))
+    embed.add_field(name="Join position", value=str(members.index(user)+1) + f'/{len([m for m in ctx.guild.members])}')
     embed.add_field(name="Registered", value=user.created_at.strftime(date_format))
     if len(user.roles) > 1:
         role_string = ' '.join([r.mention for r in user.roles][1:])
         embed.add_field(name="Roles [{}]".format(len(user.roles)-1), value=role_string, inline=True)
+    embed.add_field(name='Status', value=f'{user.status}', inline=True)
     perm_string = ', '.join([str(p[0]).replace("_", " ").title() for p in user.guild_permissions if p[1]])
-    embed.add_field(name="Guild permissions", value=perm_string, inline=False)
+    embed.add_field(name="Server permissions", value=perm_string, inline=False)
     embed.set_footer(text='USER ID: ' + str(user.id))
     await ctx.send(embed=embed)
 
 
 @bot.command()
 async def serverinfo(ctx):
-    name = str(ctx.guild.name)
+    date_format = "%Y/%m/%d"
     description = str(ctx.guild.description)
-
-    owner = str(ctx.guild.owner)
-    id = str(ctx.guild.id)
-    region = str(ctx.guild.region)
-    memberCount = str(ctx.guild.member_count)
-
-    icon = str(ctx.guild.icon_url)
-
-    embed = discord.Embed(
-        title=name + " Server Information",
-        description=description,
-        color=discord.Color.blue()
-    )
-    embed.set_thumbnail(url=icon)
-    embed.add_field(name="Owner", value=owner, inline=True)
-    embed.add_field(name="Server ID", value=id, inline=True)
-    embed.add_field(name="Region", value=region, inline=True)
-    embed.add_field(name="Member Count", value=memberCount, inline=True)
-
+    embed = discord.Embed(title=f'{ctx.guild.name} Server Information',description=description,color=ctx.guild.owner.color)
+    embed.set_thumbnail(url=f'{ctx.guild.icon_url}')
+    embed.add_field(name="Owner", value=f'{ctx.guild.owner}', inline=True)
+    embed.add_field(name="Channels", value=f'Text Channels: {len(ctx.guild.text_channels)}\n' f'Voice Channels: {len(ctx.guild.voice_channels)}', inline=True)
+    print(ctx.guild.roles)
+    embed.add_field(name="Roles", value=f'{len(ctx.guild.roles)}', inline=True)
+    embed.add_field(name="Member Count", value=ctx.guild.member_count, inline=False)
+    embed.set_footer(text=f'Server ID: {ctx.guild.id} • Created: {ctx.guild.created_at.strftime(date_format)}')
     await ctx.send(embed=embed)
 
+
+@bot.command()
+async def pfp(ctx, member: discord.Member=None):
+    if member==None:
+        member = ctx.author
+    embed = discord.Embed(color=member.colour, description=f'Profile picture of {member.mention}')
+    embed.set_image(url=f'{member.avatar_url}')
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def rps(ctx, message):
     answer = message.lower()
     choices =['rock', 'paper', 'scissors']
     bot_answer = random.choice(choices)
-    bot_win = False
     print(bot_answer)
     if answer not in choices:
-        await ctx.send('Please answer using rock, paper, or scissors as input')
+        await ctx.send('Please answer using rock, paper, scissors as input')
     else:
         if bot_answer == answer:
             await ctx.send(f'We got a tie. I also chose {answer}')
+            await ctx.send('https://tenor.com/view/tom-and-jerry-jerry-the-mouse-jerry-shake-hands-handshake-gif-17827738')
         elif answer == 'rock':
             if bot_answer == 'paper':
                 await ctx.send('I won. I chose paper to your rock.')
+                await ctx.send('https://tenor.com/view/naruto-naruto-fortnite-naruto-l-fortnite-naruto-fortnite-dance-fortnite-dance-gif-23955255')
             else:
                 await ctx.send('I lost. I chose scissors to your rock')
+                await ctx.send('https://tenor.com/view/sad-cry-crying-tears-broken-gif-15062040')
         elif answer == 'scissors' or answer == 'scissor':
             if bot_answer == 'rock':
                 await ctx.send('I won. I chose rock to your scissors.')
+                await ctx.send('https://tenor.com/view/naruto-naruto-fortnite-naruto-l-fortnite-naruto-fortnite-dance-fortnite-dance-gif-23955255')
             else:
                 await ctx.send('I lost. I chose paper to your scissors')
+                await ctx.send('https://tenor.com/view/sad-cry-crying-tears-broken-gif-15062040')
         elif answer == 'paper':
             if bot_answer == 'rock':
                 await ctx.send('I lost. I chose rock to your paper')
+                await ctx.send('https://tenor.com/view/sad-cry-crying-tears-broken-gif-15062040')
             else:
                 await ctx.send('I won. I chose scissor to your paper')
+                await ctx.send('https://tenor.com/view/naruto-naruto-fortnite-naruto-l-fortnite-naruto-fortnite-dance-fortnite-dance-gif-23955255')
+
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 def chatBot(userInput):
     response = openai.Completion.create(
@@ -373,6 +385,95 @@ async def notes(ctx, *userinput):
     await ctx.send(chatOutput)
 
 
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: discord.Member=None, *, reason='No reason provided'):
+    if member != None and member != ctx.author:
+        await member.kick(reason=reason)
+        embed=discord.Embed(title=f'{member} has been kicked from {ctx.guild.name}', color=discord.Color.red(), timestamp=ctx.message.created_at)
+        embed.add_field(name="Reason", value=reason)
+        await ctx.send(embed=embed)
+        try:
+            embed=discord.Embed(title=f'You have been kicked from {ctx.guild.name}', color=discord.Color.red(), timestamp=ctx.message.created_at)
+            embed.add_field(name='Reason', value=reason)
+            embed.set_footer(text=f'Kicked by {ctx.author}')
+            await member.send(embed=embed)
+        except:
+            pass
+    else:
+        await ctx.send("Please mention a member or use their user ID to kick!")
+
+@kick.error
+async def kick_error(ctx, error):
+    if isinstance(error, MissingPermissions):
+        await ctx.send("You don't have permissions to kick this member!")
+    else:
+        raise error
+
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member=None, *, reason='No reason provided'):
+    if member != None and member != ctx.author:
+        await member.ban(reason=reason)
+        embed=discord.Embed(title=f'{member} has been banned from {ctx.guild.name}', color=discord.Color.red(), timestamp=ctx.message.created_at)
+        embed.add_field(name="Reason", value=reason)
+        embed.set_footer(text=f'Banned by {ctx.author}')
+        await ctx.send(embed=embed)
+        try:
+            embed=discord.Embed(title=f'You have been banned from {ctx.guild.name}', color=discord.Color.red(), timestamp=ctx.message.created_at)
+            embed.add_field(name='Reason', value=reason)
+            embed.set_footer(text=f'Banned by {ctx.author}')
+            await member.send(embed=embed)
+        except:
+            pass
+    else:
+        await ctx.send("Please mention a member or use their user ID to kick!")
+
+@ban.error
+async def ban_error(ctx, error):
+    if isinstance(error, MissingPermissions):
+        await ctx.send("You don't have permissions to ban this member!")
+    else:
+        raise error
+
+
+@bot.event
+async def on_message(message):
+    play = False
+    if message.content.startswith('+newhangman'):
+        play = True
+        ctx= message.channel
+        url='https://random-word-api.herokuapp.com/word'
+        response = requests.request("GET", url)
+        response = response.json()
+        word = response[0]
+        print(word)
+        length = len(word)
+        print(length)
+        guess_word = '- ' * length
+        print(guess_word)
+        guessed_letters = []
+        guessed_words = []
+        tries = 6
+    elif message.content.startswith('+hangman quit'):
+        play = False
+    if play:
+        embed=discord.Embed(title="Hangman Game", color=discord.Color.red())
+        embed.add_field(name="Word", value=guess_word)
+        await ctx.send(embed=embed)
+        def check(m):
+            return m.channel == message.channel and m.author == message.autho
+        #guess= await client.wait_for('message', check=check) needa fix this
+
+        if len(message.content) == 1:
+            guess = message.content
+            print(guess)
+            if guess not in guessed_letters:
+                guessed_letters.append(message.content)
+                print(guessed_letters)
+                guess = message.content
+
+
 
 
 
@@ -386,8 +487,3 @@ def listToString(s):
     return str1.join(s)
 
 bot.run(os.getenv('TOKEN'))
-
-
-
-
-

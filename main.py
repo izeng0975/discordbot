@@ -1,18 +1,23 @@
 import datetime
+import string
 import time
 from datetime import date
 import discord
 from discord.utils import get
 from discord.ext import commands
 from discord.ext.commands import MissingPermissions
+from discord.ext.commands import BadArgument
 from dotenv import load_dotenv
 import requests
 import random
+from random import *
 from jikanpy import Jikan
 import numpy as np
 import os
 import openai
 from PIL import Image, ImageFont, ImageDraw
+import youtube_dl
+import asyncio
 
 
 
@@ -52,11 +57,14 @@ async def spam(ctx, num: int, *message):
         await ctx.send(' '.join(message))
         time.sleep(0.5)
 
+@spam.error
+async def spam_error(ctx, error):
+    if isinstance(error, BadArgument):
+        await ctx.send('Please input a number!')
 
 @bot.command()
 async def weather(ctx, *city):
     city_full = ' '.join(city)
-    global response
     url = os.getenv('weather_url')
     api_key = os.getenv('weather_api_key')
     querystring = {"q": city_full, "appid": api_key, "units": "imperial"}
@@ -67,11 +75,6 @@ async def weather(ctx, *city):
         if response['message'] == 'city not found':
             await ctx.send("That's not a real place!")
     else:
-        await ctx.send("The main weather is: " + response["weather"][0]["main"] + '\n' +
-                       "Description: " + response["weather"][0]["description"] + '\n' +
-                       "The current temperature is " + str(response["main"]["temp"]) + '\u00b0F\n' +
-                       "Feels like " + str(response["main"]["feels_like"]) + "\u00b0F")
-
         image = Image.open("post.png")
         draw = ImageDraw.Draw(image)
         #title and subheading
@@ -281,10 +284,9 @@ async def userinfo(ctx, *, user: discord.Member=None):
     if len(user.roles) > 1:
         role_string = ' '.join([r.mention for r in user.roles][1:])
         embed.add_field(name="Roles [{}]".format(len(user.roles)-1), value=role_string, inline=True)
-    embed.add_field(name='Activity', value=f'{user.activity}', inline=True)
     embed.add_field(name='Status', value=f'{user.status}', inline=True)
     perm_string = ', '.join([str(p[0]).replace("_", " ").title() for p in user.guild_permissions if p[1]])
-    embed.add_field(name="Guild permissions", value=perm_string, inline=False)
+    embed.add_field(name="Server permissions", value=perm_string, inline=False)
     embed.set_footer(text='USER ID: ' + str(user.id))
     await ctx.send(embed=embed)
 
@@ -441,6 +443,73 @@ async def ban_error(ctx, error):
     else:
         raise error
 
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def clear(ctx, number: int=None):
+    if number==1:
+        await ctx.channel.purge(limit=(number+1))
+        embed=discord.Embed(title=f'Cleared 1 message', color=discord.Color.red(), timestamp=ctx.message.created_at)
+        embed.set_footer(text=f'Requested by {ctx.author}')
+        await ctx.send(embed=embed)
+    elif number >1:
+        await ctx.channel.purge(limit=(number+1))
+        embed=discord.Embed(title=f'Cleared {number} messages', color=discord.Color.red(), timestamp=ctx.message.created_at)
+        embed.set_footer(text=f'Requested by {ctx.author}')
+        await ctx.send(embed=embed)
+
+@clear.error
+async def clear_error(ctx, error):
+    if isinstance(error, BadArgument):
+        await ctx.send('Please input a number!')
+    elif isinstance(error, MissingPermissions):
+        await ctx.send("You don't have permission to delete messages!")
+    else:
+        raise error
+
+@bot.command()
+async def password_gen(ctx):
+    characters= string.ascii_letters + string.punctuation + string.digits
+    password= "".join(choice(characters) for x in range(randint(8,16)))
+    await ctx.author.send(password)
+##@bot.event
+##async def on_message(message):
+  ##  play = False
+    ##if message.content.startswith('+newhangman'):
+      ##  play = True
+        ##ctx= message.channel
+        ##url='https://random-word-api.herokuapp.com/word'
+       ## response = requests.request("GET", url)
+        ##response = response.json()
+        ##word = response[0]
+       ## print(word)
+       ## length = len(word)
+       ## print(length)
+       ## guess_word = '- ' * length
+       ## print(guess_word)
+       ## guessed_letters = []
+       ## guessed_words = []
+       ## tries = 6
+   ## elif message.content.startswith('+hangman quit'):
+       ## play = False
+   ## if play:
+       ## embed=discord.Embed(title="Hangman Game", color=discord.Color.red())
+      ##  embed.add_field(name="Word", value=guess_word)
+      ##  await ctx.send(embed=embed)
+     ##   def check(m):
+     ##       return m.channel == message.channel and m.author == message.autho
+        #guess= await client.wait_for('message', check=check) needa fix this
+
+      ##  if len(message.content) == 1:
+       ##     guess = message.content
+     ##       print(guess)
+       ##     if guess not in guessed_letters:
+       ##         guessed_letters.append(message.content)
+        ##        print(guessed_letters)
+       ##         guess = message.content
+
+
+
+
 
 
 
@@ -452,4 +521,3 @@ def listToString(s):
     return str1.join(s)
 
 bot.run(os.getenv('TOKEN'))
-

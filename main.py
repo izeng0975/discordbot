@@ -1,5 +1,6 @@
 import datetime
 import string
+
 import time
 from datetime import date
 import discord
@@ -28,6 +29,7 @@ intents.members = True
 load_dotenv()
 bot = commands.Bot(command_prefix='+', intents=intents, activity=discord.Activity(type=discord.ActivityType.listening, name="+help"))
 
+numbers=":one:", ":two:",":three:",":four:",":five:",":six:",":seven:",":eight:",":nine:"
 
 @bot.event
 async def on_ready():
@@ -151,7 +153,7 @@ async def weather(ctx, *city):
         (x,y) = (650, 830)
         draw.text((x,y), content, color, font=font)
 
-        image.show()
+        #image.show()
         image.save("weather.png")
         embed=discord.Embed(title=f'Showing weather for {response["name"]}', color=discord.Color.blue())
         file = discord.File('weather.png')
@@ -446,7 +448,9 @@ async def ban_error(ctx, error):
 @bot.command()
 @commands.has_permissions(manage_messages=True)
 async def clear(ctx, number: int=None):
-    if number==1:
+    if number==None:
+        await ctx.send("Please use a number from 1 or greater!")
+    elif number==1:
         await ctx.channel.purge(limit=(number+1))
         embed=discord.Embed(title=f'Cleared 1 message', color=discord.Color.red(), timestamp=ctx.message.created_at)
         embed.set_footer(text=f'Requested by {ctx.author}')
@@ -456,7 +460,6 @@ async def clear(ctx, number: int=None):
         embed=discord.Embed(title=f'Cleared {number} messages', color=discord.Color.red(), timestamp=ctx.message.created_at)
         embed.set_footer(text=f'Requested by {ctx.author}')
         await ctx.send(embed=embed)
-
 @clear.error
 async def clear_error(ctx, error):
     if isinstance(error, BadArgument):
@@ -470,7 +473,22 @@ async def clear_error(ctx, error):
 async def password_gen(ctx):
     characters= string.ascii_letters + string.punctuation + string.digits
     password= "".join(choice(characters) for x in range(randint(8,16)))
-    await ctx.author.send(password)
+    embed=discord.Embed(title='Password Generator', description=f"The generated password is: ||{password}||\nDon't share it with anybody else!", color=discord.Color.from_rgb(0,0,0), timestamp=ctx.message.created_at)
+    embed.set_author(name='BotBot', icon_url=f'{bot.user.avatar_url}')
+    file=discord.File('passwordicon.png')
+    embed.set_thumbnail(url='attachment://passwordicon.png')
+    await ctx.author.send(embed=embed, file=file)
+
+@bot.command()
+async def poll(ctx, question, *options):
+    if len(options) > 10:
+        await ctx.send('Please only create 9 or less options!')
+    else:
+        embed=discord.Embed(title=f'{question}', color=ctx.author.color, timestamp=datetime.datetime.utcnow())
+        fields=[('Options','\n'.join([f"{numbers[idx]} {options[idx]}" for idx, option in enumerate(options)]))]
+        for name, value in fields:
+            embed.add_field(name=name, value=value, inline=False)
+        await ctx.send(embed=embed)
 ##@bot.event
 ##async def on_message(message):
   ##  play = False

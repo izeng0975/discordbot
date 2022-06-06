@@ -1,13 +1,17 @@
 import datetime
+import string
+
 import time
 from datetime import date
 import discord
 from discord.utils import get
 from discord.ext import commands
 from discord.ext.commands import MissingPermissions
+from discord.ext.commands import BadArgument
 from dotenv import load_dotenv
 import requests
 import random
+from random import *
 from jikanpy import Jikan
 import numpy as np
 import os
@@ -23,29 +27,15 @@ import asyncio
 intents = discord.Intents.all()
 intents.members = True
 load_dotenv()
+client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='+', intents=intents, activity=discord.Activity(type=discord.ActivityType.listening, name="+help"))
 
+numbers=":one:", ":two:",":three:",":four:",":five:",":six:",":seven:",":eight:",":nine:"
 
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
 
-
-##@bot.event
-#async def on_member_leave(member):
-    #guild = member.guild
-    #channel = guild.get_channel(member.guild.channels)
-    #await channel.send(f'Everyone, {member.name} has left the server. :sad:')
-    #await member.send('Sorry to see you leave so soon :(')
-
-
-#@bot.event
-#async def on_member_join(member):
-    #try:
-        #embed=discord.Embed(f'Welcome {member.name} to the server!', description='I hope you have a fun time here!', color=discord.Color.green())
-        #await bot.send_message(member, embed=embed)
-    #except:
-        #pass
 
 
 @bot.command()
@@ -54,6 +44,10 @@ async def spam(ctx, num: int, *message):
         await ctx.send(' '.join(message))
         time.sleep(0.5)
 
+@spam.error
+async def spam_error(ctx, error):
+    if isinstance(error, BadArgument):
+        await ctx.send('Please input a number!')
 
 @bot.command()
 async def weather(ctx, *city):
@@ -144,7 +138,7 @@ async def weather(ctx, *city):
         (x,y) = (650, 830)
         draw.text((x,y), content, color, font=font)
 
-        image.show()
+        #image.show()
         image.save("weather.png")
         embed=discord.Embed(title=f'Showing weather for {response["name"]}', color=discord.Color.blue())
         file = discord.File('weather.png')
@@ -192,23 +186,6 @@ async def flip(ctx):
         await ctx.send(answers[1])
 
 
-@bot.command()
-async def join(ctx):
-    if (ctx.author.voice):
-        channel = ctx.author.voice.channel
-        await channel.connect()
-        await ctx.send('Bot joined')
-    else:
-        await ctx.send("You must be in a voice channel first so I can join it.")
-
-
-@bot.command()
-async def leave(ctx):
-    if (ctx.voice_client):
-        await ctx.guild.voice_client.disconnect()
-        await ctx.send('Bot left')
-    else:
-        await ctx.send("I'm not in a voice channel, use the join command to make me join")
 
 
 jikan = Jikan()
@@ -436,47 +413,208 @@ async def ban_error(ctx, error):
     else:
         raise error
 
-
-@bot.event
-async def on_message(message):
-    play = False
-    if message.content.startswith('+newhangman'):
-        play = True
-        ctx= message.channel
-        url='https://random-word-api.herokuapp.com/word'
-        response = requests.request("GET", url)
-        response = response.json()
-        word = response[0]
-        print(word)
-        length = len(word)
-        print(length)
-        guess_word = '- ' * length
-        print(guess_word)
-        guessed_letters = []
-        guessed_words = []
-        tries = 6
-    elif message.content.startswith('+hangman quit'):
-        play = False
-    if play:
-        embed=discord.Embed(title="Hangman Game", color=discord.Color.red())
-        embed.add_field(name="Word", value=guess_word)
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def clear(ctx, number: int=None):
+    if number==None:
+        await ctx.send("Please use a number from 1 or greater!")
+    elif number==1:
+        await ctx.channel.purge(limit=(number+1))
+        embed=discord.Embed(title=f'Cleared 1 message', color=discord.Color.red(), timestamp=ctx.message.created_at)
+        embed.set_footer(text=f'Requested by {ctx.author}')
         await ctx.send(embed=embed)
-        def check(m):
-            return m.channel == message.channel and m.author == message.autho
+    elif number >1:
+        await ctx.channel.purge(limit=(number+1))
+        embed=discord.Embed(title=f'Cleared {number} messages', color=discord.Color.red(), timestamp=ctx.message.created_at)
+        embed.set_footer(text=f'Requested by {ctx.author}')
+        await ctx.send(embed=embed)
+@clear.error
+async def clear_error(ctx, error):
+    if isinstance(error, BadArgument):
+        await ctx.send('Please input a number!')
+    elif isinstance(error, MissingPermissions):
+        await ctx.send("You don't have permission to delete messages!")
+    else:
+        raise error
+
+@bot.command()
+async def password_gen(ctx):
+    characters= string.ascii_letters + string.punctuation + string.digits
+    password= "".join(choice(characters) for x in range(randint(8,16)))
+    embed=discord.Embed(title='Password Generator', description=f"The generated password is: ||{password}||\nDon't share it with anybody else!", color=discord.Color.from_rgb(0,0,0), timestamp=ctx.message.created_at)
+    embed.set_author(name='BotBot', icon_url=f'{bot.user.avatar_url}')
+    file=discord.File('passwordicon.png')
+    embed.set_thumbnail(url='attachment://passwordicon.png')
+    await ctx.author.send(embed=embed, file=file)
+
+@bot.command()
+async def poll(ctx, question, *options):
+    if len(options) > 10:
+        await ctx.send('Please only create 9 or less options!')
+    else:
+        embed=discord.Embed(title=f'{question}', color=ctx.author.color, timestamp=datetime.datetime.utcnow())
+        fields=[('Options','\n'.join([f"{numbers[idx]} {options[idx]}" for idx, option in enumerate(options)]))]
+        for name, value in fields:
+            embed.add_field(name=name, value=value, inline=False)
+        await ctx.send(embed=embed)
+
+
+
+
+##@bot.event
+##async def on_message(message):
+  ##  play = False
+    ##if message.content.startswith('+newhangman'):
+      ##  play = True
+        ##ctx= message.channel
+        ##url='https://random-word-api.herokuapp.com/word'
+       ## response = requests.request("GET", url)
+        ##response = response.json()
+        ##word = response[0]
+       ## print(word)
+       ## length = len(word)
+       ## print(length)
+       ## guess_word = '- ' * length
+       ## print(guess_word)
+       ## guessed_letters = []
+       ## guessed_words = []
+       ## tries = 6
+   ## elif message.content.startswith('+hangman quit'):
+       ## play = False
+   ## if play:
+       ## embed=discord.Embed(title="Hangman Game", color=discord.Color.red())
+      ##  embed.add_field(name="Word", value=guess_word)
+      ##  await ctx.send(embed=embed)
+     ##   def check(m):
+     ##       return m.channel == message.channel and m.author == message.autho
         #guess= await client.wait_for('message', check=check) needa fix this
 
-        if len(message.content) == 1:
-            guess = message.content
-            print(guess)
-            if guess not in guessed_letters:
-                guessed_letters.append(message.content)
-                print(guessed_letters)
-                guess = message.content
+      ##  if len(message.content) == 1:
+       ##     guess = message.content
+     ##       print(guess)
+       ##     if guess not in guessed_letters:
+       ##         guessed_letters.append(message.content)
+        ##        print(guessed_letters)
+       ##         guess = message.content
 
 
 
 
 
+
+
+
+
+
+
+#####################################
+youtube_dl.utils.bug_reports_message = lambda: ''
+
+ytdl_format_options = {
+    'format': 'bestaudio/best',
+    #'postprocessors': [{
+        #'key': 'FFmpegExtractAudio',
+        #'preferredcodec': 'mp3',
+        #'preferredquality': '192',
+    #}],
+    'restrictfilenames': True,
+    'noplaylist': True,
+    'nocheckcertificate': True,
+    'ignoreerrors': False,
+    'logtostderr': False,
+    'quiet': True,
+    'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
+}
+
+ffmpeg_options = {
+    'options': '-vn'
+}
+
+ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+        self.data = data
+        self.title = data.get('title')
+        self.url = ""
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+        if 'entries' in data:
+            # take first item from a playlist
+            data = data['entries'][0]
+        filename = data['title'] if stream else ytdl.prepare_filename(data)
+        return filename
+
+
+@bot.command(name='play', help='To play song')
+async def play(ctx, url):
+    if not commands.has_permissions(manage_messages=True):
+        await ctx.send('NOT AUTHORIZED!')
+        return
+    try:
+        server = ctx.message.guild
+        voice_channel = server.voice_client
+
+        async with ctx.typing():
+            filename = await YTDLSource.from_url(url, loop=bot.loop)
+            voice_channel.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source=filename))
+            print(filename)
+        await ctx.send('**Now playing:** {}'.format(filename))
+    except:
+        await ctx.send("The bot is not connected to a voice channel.")
+
+
+@bot.command(name='join', help='Tells the bot to join the voice channel')
+async def join(ctx):
+    if not ctx.message.author.voice:
+        await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
+        return
+    else:
+        channel = ctx.message.author.voice.channel
+    await channel.connect()
+
+
+@bot.command(name='pause', help='This command pauses the song')
+async def pause(ctx):
+    voice_client = ctx.message.guild.voice_client
+    if voice_client.is_playing():
+        await voice_client.pause()
+    else:
+        await ctx.send("The bot is not playing anything at the moment.")
+
+
+@bot.command(name='resume', help='Resumes the song')
+async def resume(ctx):
+    voice_client = ctx.message.guild.voice_client
+    if voice_client.is_paused():
+        await voice_client.resume()
+    else:
+        await ctx.send("The bot was not playing anything before this. Use play_song command")
+
+
+@bot.command(name='leave', help='To make the bot leave the voice channel')
+async def leave(ctx):
+    voice_client = ctx.message.guild.voice_client
+    if voice_client.is_connected():
+        await voice_client.disconnect()
+    else:
+        await ctx.send("The bot is not connected to a voice channel.")
+
+
+@bot.command(name='stop', help='Stops the song')
+async def stop(ctx):
+    voice_client = ctx.message.guild.voice_client
+    if voice_client.is_playing():
+        await voice_client.stop()
+    else:
+        await ctx.send("The bot is not playing anything at the moment.")
 
 
 

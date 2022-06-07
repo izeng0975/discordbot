@@ -580,29 +580,31 @@ async def play(ctx, url):
     elif not commands.has_permissions(send_messages=True):
         await ctx.send('NOT AUTHORIZED!')
         return
-    elif (ctx.author.voice):
-        channel = ctx.author.voice.channel
-        await channel.connect()
-        await ctx.send(f'Joined {channel.name} voice channel')
-        try:
-            server = ctx.message.guild
-            voice_channel = server.voice_client
-
-            async with ctx.typing():
-                filename = await YTDLSource.from_url(url, loop=bot.loop)
-                voice_channel.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source=filename))
-                print(filename)
+    try:
+        server = ctx.message.guild
+        voice_channel = server.voice_client
+        async with ctx.typing():
+            filename = await YTDLSource.from_url(url, loop=bot.loop)
+            voice_channel.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source=filename))
+            print(filename)
             await ctx.send('**Now playing:** {}'.format(filename))
-        except:
-            await ctx.send("The bot is not connected to a voice channel.")
-    else:
-        await ctx.send('Please join a voice channel!')
+    except:
+        await ctx.send("The bot is not connected to a voice channel.")
 @play.error
 async def play_error(ctx, error):
     if isinstance(error, MissingRequiredArgument):
         await ctx.send('Please include a URL! I cannot play music if there is no link!')
     else:
         raise error
+
+@bot.command(name='join', help='Tells the bot to join the voice channel')
+async def join(ctx):
+    if not ctx.message.author.voice:
+        await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
+        return
+    else:
+        channel = ctx.message.author.voice.channel
+    await channel.connect()
 
 
 @bot.command(name='pause', help='This command pauses the song')

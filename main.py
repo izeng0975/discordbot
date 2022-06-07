@@ -184,12 +184,6 @@ async def stop(ctx):
     await ctx.send(embed=embed)
 
 @help.command()
-async def stop(ctx):
-    embed=discord.Embed(title='Stop Music', description='Will stop the song that is currently playing', color=ctx.author.color)
-    embed.add_field(name='**Syntax**', value='+stop')
-    await ctx.send(embed=embed)
-
-@help.command()
 async def pause(ctx):
     embed=discord.Embed(title='Pause Music', description='Will pause the music that is currently playing', color=ctx.author.color)
     embed.add_field(name='**Syntax**', value='+pause')
@@ -341,7 +335,6 @@ async def magicball(ctx, *question):
     embed.add_field(name='Answer: ', value=f'{response}', inline=False)
     file=discord.File('eightball.png')
     embed.set_thumbnail(url='attachment://eightball.png')
-    embed.set_footer(test=f'Asked by {ctx.message.author}')
     await ctx.send(embed=embed, file=file)
 
 
@@ -405,7 +398,65 @@ async def anime(ctx,*anime):
 
             embedSuggest = discord.Embed(title="Did you mean: ", description=listToString(suggested), color=discord.Color.blue())
             await ctx.send(embed=embedSuggest)
+@bot.command()
+async def manga(ctx, *manga):
+    manga_name = ''.join(manga)
+    print(manga_name)
+    # title, title_english, status, image_url, chapters, volumes, score, synopsis,url,
+    try:
+        if manga_name == '86':
+            response = jikan.manga(112236)
+            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
+            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'], color=discord.Color.blue())
+            embed.set_thumbnail(url=response['image_url'])
+            embed.add_field(name='Volumes: ', value=str(response['volumes']), inline=True)
+            embed.add_field(name='Chapters: ', value=str(response['chapters']), inline = True)
+            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
+            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
+            await ctx.send(embed=embed)
+        elif isinstance(int(manga_name), int) == True:
+            response = jikan.anime(manga_name)
+            print(response)
+            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
+            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'], color=discord.Color.blue())
+            embed.set_thumbnail(url=response['image_url'])
+            embed.add_field(name='Volumes: ', value=str(response['volumes']), inline=True)
+            embed.add_field(name='Chapters: ', value=str(response['chapters']), inline = True)
+            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
+            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
+            await ctx.send(embed=embed)
+    except:
+        manga_name = ''.join(manga)
+        manga_name = manga_name.lower()
+        response = jikan.search('manga', manga_name)
+        print(response)
+        x = 0
+        try:
+            while response['results'][x]['title'].replace(" ", '').lower() != manga_name:
+                print(response['results'][x]['title'])
+                x += 1
+            print(response['results'][x]['title'])
+            manga_name = response['results'][x]['mal_id']
+            response = jikan.manga(manga_name)
+            print(response)
+            title = response['title'] + " / " + str(response['title_english']) + " (" + response['status'] + ')'
+            embed = discord.Embed(title=title, url=response['url'], description=response['synopsis'],
+                              color=discord.Color.blue())
+            embed.set_thumbnail(url=response['image_url'])
+            embed.add_field(name='Volumes: ', value=str(response['volumes']), inline=True)
+            embed.add_field(name='Chapters: ', value=str(response['chapters']), inline = True)
+            embed.add_field(name='Score: ', value=str(response['score']) + "/10 :star:", inline=True)
+            embed.set_footer(text="Information requested by: {}".format(ctx.author.display_name))
+            await ctx.send(embed=embed)
+        except:
+            n=0
+            suggested = []
+            for i in response['results']:
+                suggested.append((response['results'][n]['title']))
+                n += 1
 
+            embedSuggest = discord.Embed(title="Did you mean: ", description=listToString(suggested), color=discord.Color.blue())
+            await ctx.send(embed=embedSuggest)
 
 @bot.command()
 async def userinfo(ctx, *, user: discord.Member=None):

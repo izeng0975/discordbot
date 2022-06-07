@@ -33,6 +33,7 @@ intents.members = True
 load_dotenv()
 client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='+', intents=intents, activity=discord.Activity(type=discord.ActivityType.listening, name="+help"))
+bot.remove_command('help')
 
 numbers="1️⃣", "2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣"
 
@@ -40,9 +41,170 @@ numbers="1️⃣", "2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
 
+@bot.group(invoke_without_command=True)
+async def help(ctx):
+    embed= discord.Embed(title='Help', description='Use +help <command> for extended information on a command', color=ctx.author.color)
+    embed.add_field(name='Moderation', value='kick, ban, clear', inline=True)
+    embed.add_field(name='Fun', value='magicball, chat, notes, spam, flip, pfp, poll, deepfry, rps, password_gen', inline=False)
+    embed.add_field(name='Useful info', value='userinfo, serverinfo, weather, anime, manga', inline=False)
+    embed.add_field(name='Music', value='join, leave, play, stop, resume, pause', inline=False)
+    await ctx.send(embed=embed)
+
+@help.command()
+async def kick(ctx):
+    embed=discord.Embed(title='Kick', description='Kicks a member from the server', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+kick <member> [reason(optional)]')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def ban(ctx):
+    embed=discord.Embed(title='Ban', description='Bans a member from the server', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+ban <member> [reason(optional)]')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def clear(ctx):
+    embed=discord.Embed(title='Clear', description='Deletes specified number of messages', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+clear <number>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def magicball(ctx):
+    embed=discord.Embed(title='Magic 8 Ball', description='The spooky, magical, magic 8 ball will answer any question', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+magicball <question>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def chat(ctx):
+    embed=discord.Embed(title='Chat', description='Can interact with the bot by asking it questions', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+chat <question>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def notes(ctx):
+    embed=discord.Embed(title='Notes', description='Ask the bot for up to 5 notes on a certain topic', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+notes What are <up to 5> notes on <topic>?')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def spam(ctx):
+    embed=discord.Embed(title='Spam', description='Tell the bot to spam a certain message a given amount of times', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+spam <num> <message>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def flip(ctx):
+    embed=discord.Embed(title='Flip', description='Tell the bot to flip a coin', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+flip')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def pfp(ctx):
+    embed=discord.Embed(title='Profile Picture', description='Tell the bot to send back the profile picture of you or requested member', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+pfp <member> [+pfp will return your own]')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def poll(ctx):
+    embed=discord.Embed(title='Poll', description='Tell the bot to create a poll. Up to 9 choices are allowed.', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+poll "<Question>" choices', inline=True)
+    embed.add_field(name='Example', value='+poll "Fortnite or PUBG?" fortnite pubg none')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def deepfry(ctx):
+    embed=discord.Embed(title='Deepfry', description='Bot will return a deepfried image of attachment sent. Must be an image, not URLs', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+deepfry [attach image while sending]')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def rps(ctx):
+    embed=discord.Embed(title='Rock Paper Scissor', description='Play rock, paper, scissors with the bot', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+rps <rock, paper, scissors>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def password_gen(ctx):
+    embed=discord.Embed(title='Password Generator', description='Bot will create a secure password and DM you it', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+password_gen')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def userinfo(ctx):
+    embed=discord.Embed(title='User Information', description='Information about a specified user will be sent', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+userinfo <member> [+userinfo will send userinfo about caller]')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def serverinfo(ctx):
+    embed=discord.Embed(title='Server Information', description='Information about server will be sent', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+serverinfo')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def weather(ctx):
+    embed=discord.Embed(title='Weather Information', description='Information about specified place will be sent as image', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+weather <place>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def anime(ctx):
+    embed=discord.Embed(title='Anime Information', description='Information about specified anime will be sent', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+anime <anime name>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def manga(ctx):
+    embed=discord.Embed(title='Manga Information', description='Information about specified manga will be sent', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+anime <manga name>')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def play(ctx):
+    embed=discord.Embed(title='Play Music', description='Will play song from given URL', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+play <URL> [Must do +join first!]')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def join(ctx):
+    embed=discord.Embed(title='Join Voice Channel', description='Will join voice channel caller is in', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+join [this must be used before doing +play]')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def leave(ctx):
+    embed=discord.Embed(title='Leave Voice Channel', description='Will leave bot is in', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+leave')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def stop(ctx):
+    embed=discord.Embed(title='Stop Music', description='Will stop the music that is currently playing', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+stop')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def stop(ctx):
+    embed=discord.Embed(title='Stop Music', description='Will stop the song that is currently playing', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+stop')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def pause(ctx):
+    embed=discord.Embed(title='Pause Music', description='Will pause the music that is currently playing', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+pause')
+    await ctx.send(embed=embed)
+
+@help.command()
+async def resume(ctx):
+    embed=discord.Embed(title='Resume Music', description='Will resume the music that is currently paused', color=ctx.author.color)
+    embed.add_field(name='**Syntax**', value='+resume')
+    await ctx.send(embed=embed)
 
 
-@bot.command()
+
+
+@bot.command(name='spam', help='Spam any given string message - - - Format:+spam 5 hello i am cool')
 async def spam(ctx, num: int, *message):
     for i in range(num):
         await ctx.send(' '.join(message))
@@ -179,6 +341,7 @@ async def magicball(ctx, *question):
     embed.add_field(name='Answer: ', value=f'{response}', inline=False)
     file=discord.File('eightball.png')
     embed.set_thumbnail(url='attachment://eightball.png')
+    embed.set_footer(test=f'Asked by {ctx.message.author}')
     await ctx.send(embed=embed, file=file)
 
 
@@ -287,6 +450,7 @@ async def pfp(ctx, member: discord.Member=None):
     if member==None:
         member = ctx.author
     embed = discord.Embed(color=member.colour, description=f'Profile picture of {member.mention}')
+    print(member.avatar_url)
     embed.set_image(url=f'{member.avatar_url}')
     await ctx.send(embed=embed)
 
@@ -628,11 +792,13 @@ async def resume(ctx):
 @bot.command(name='leave', help='To make the bot leave the voice channel')
 async def leave(ctx):
     voice_client = ctx.message.guild.voice_client
-    if voice_client.is_connected():
-        await voice_client.disconnect()
-    else:
-        await ctx.send("The bot is not connected to a voice channel.")
-
+    try:
+        if voice_client.is_connected():
+            await voice_client.disconnect()
+        else:
+            await ctx.send("The bot is not connected to a voice channel.")
+    except:
+        await ctx.send('You are not in a voice channel!')
 
 @bot.command(name='stop', help='Stops the song')
 async def stop(ctx):
